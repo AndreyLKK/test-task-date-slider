@@ -2,8 +2,20 @@
   <div class="container">
     <div class="slider">
       <div class="slider__text-date">
-        <button class="slider__text" @click="handlerToggle">Все года</button>
-        <button class="slider__text" @click="handlerToggle">Месяц</button>
+        <button
+          class="slider__text"
+          @click="handlerToggle"
+          :style="activeSlider(visibleMounth)"
+        >
+          Все года
+        </button>
+        <button
+          class="slider__text"
+          @click="handlerToggle"
+          :style="activeSlider(!visibleMounth)"
+        >
+          Месяц
+        </button>
       </div>
       <div class="slider__inner">
         <div class="slider__control">
@@ -19,13 +31,13 @@
                   : getMonth(fromValue, stepValueYearAndMonth)
               }}
             </p>
-            <span class="slider__tooltip-text">
+            <p class="slider__tooltip-text">
               {{
                 visibleMounth
                   ? getYear(fromValue, stepValue, dateObject)
                   : getYear(fromValue, stepValueYearAndMonth, dateYearAndMounth)
               }}
-            </span>
+            </p>
             <span
               class="slider__tooltip-triangle slider__tooltip-triangle--left"
             ></span>
@@ -42,11 +54,13 @@
                   : getMonth(toValue, stepValueYearAndMonth)
               }}
             </p>
-            <span class="slider__tooltip-text">{{
-              visibleMounth
-                ? getYear(toValue, stepValue, dateObject)
-                : getYear(toValue, stepValueYearAndMonth, dateYearAndMounth)
-            }}</span>
+            <p class="slider__tooltip-text">
+              {{
+                visibleMounth
+                  ? getYear(toValue, stepValue, dateObject)
+                  : getYear(toValue, stepValueYearAndMonth, dateYearAndMounth)
+              }}
+            </p>
             <span
               class="slider__tooltip-triangle slider__tooltip-triangle--right"
             ></span>
@@ -78,15 +92,21 @@
             v-for="(months, year) in dateObject"
             :key="year"
           >
-            <div class="slider__month">
-              {{ year }}
+            <div class="slider__year">
+              <p class="slider__year-text">
+                {{ year }}
+              </p>
               <template v-if="false">
                 <ul
                   class="slider__month-list"
                   v-for="(month, index) in months"
                   :key="index"
                 >
-                  <li class="slider__month-item">{{ month }}</li>
+                  <li class="slider__month-item">
+                    <p class="slider__month-text">
+                      {{ month }}
+                    </p>
+                  </li>
                 </ul>
               </template>
             </div>
@@ -99,15 +119,22 @@
             v-for="(months, year) in dateYearAndMounth"
             :key="year"
           >
-            <div class="slider__month">
-              {{ year }}
+            <div class="slider__year">
+              <p
+                class="slider__year-text"
+                :class="{ 'slider__year-color': !visibleMounth }"
+              >
+                {{ year }}
+              </p>
 
               <ul
                 class="slider__month-list"
                 v-for="(month, index) in months"
                 :key="index"
               >
-                <li class="slider__month-item">{{ month }}</li>
+                <li class="slider__month-item">
+                  <p class="slider__month-text">{{ month }}</p>
+                </li>
               </ul>
             </div>
           </li>
@@ -179,7 +206,7 @@ const handlerToggle = () => {
 };
 
 function createDateRangeObject(startYear: number, endYear: number): DateObject {
-  const result = {};
+  const result: DateObject = {};
   for (let year = startYear; year <= endYear; year++) {
     result[year] = [...month];
     if (year === endYear) result[year] = [];
@@ -206,14 +233,19 @@ function calculateStepValue(obj: DateObject): string {
 const getMonth = (value: number, step: string): string => {
   const stepIndex = Math.round(value / Number(step));
   const monthIndex = (stepIndex - 1) % 13;
+  const firstCapitalLetter = month[monthIndex]
+    ? month[monthIndex].charAt(0).toUpperCase() + month[monthIndex].substring(1)
+    : "-";
+
   if (value == 0) return "-";
-  return monthIndex < month.length ? month[monthIndex] : "-";
+  return monthIndex < month.length ? firstCapitalLetter : "-";
 };
 
 const getYear = (value: number, step: string, obj: DateObject): string => {
   const stepIndex = Math.round(value / Number(step));
   const monthsPerYear = 13;
   const keys = Object.keys(obj);
+
   const numberOfYears = keys.length;
   const stepsPerYear = monthsPerYear;
   const yearIndex = Math.floor(stepIndex / stepsPerYear);
@@ -238,6 +270,12 @@ const calcDistanceRight = computed(() => {
     right: `${100 - toValue.value}%`,
   };
 });
+
+const activeSlider = (isActive: boolean) => {
+  return {
+    fontWeight: isActive ? "700" : "normal",
+  };
+};
 
 watch([fromValue, toValue], ([newFromValue, newToValue]) => {
   if (+newFromValue > +newToValue) {
@@ -266,6 +304,7 @@ watch([fromValue, toValue], ([newFromValue, newToValue]) => {
 
   &__text {
     margin-bottom: 10px;
+    color: #5cadea;
   }
 
   &__inner {
@@ -299,9 +338,22 @@ watch([fromValue, toValue], ([newFromValue, newToValue]) => {
     margin-right: 8px;
   }
 
-  &__month {
+  &__year {
     display: flex;
     justify-content: space-between;
+  }
+
+  &__year-text {
+    color: #adadad;
+  }
+
+  &__year-color {
+    color: #525252;
+    font-weight: 700;
+  }
+
+  &__month-text {
+    color: #adadad;
   }
 
   &__input[type="range"] {
@@ -346,6 +398,7 @@ watch([fromValue, toValue], ([newFromValue, newToValue]) => {
 
   &-text {
     background-color: #fff;
+    font-weight: 700;
   }
 
   &--right {
@@ -372,16 +425,16 @@ watch([fromValue, toValue], ([newFromValue, newToValue]) => {
 
     &--left::after {
       border-top: 8px solid #fff;
-      right: 5px;
-      transform: translateY(100%);
-      bottom: -5px;
+      right: 0px;
+      transform: translateX(50%);
+      bottom: -22px;
     }
 
     &--right::after {
       border-bottom: 8px solid #fff;
-      right: 5px;
-      transform: translateY(-100%);
-      top: -22px;
+      right: 0px;
+      transform: translateX(50%);
+      bottom: 38px;
     }
   }
 }

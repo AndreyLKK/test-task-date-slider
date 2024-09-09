@@ -21,4 +21,5 @@ const startYearWithDate: number = 2011;
   height: 100vh;
   background-color: rgb(232, 232, 232);
 }
+
 </style>
