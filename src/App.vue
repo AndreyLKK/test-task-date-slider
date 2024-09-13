@@ -1,9 +1,11 @@
 <template>
   <div class="content">
     <MySlider
-      :startYear="startYear"
-      :endYear="endYear"
-      :startYearWithDate="startYearWithDate"
+
+      :minDate="minDate"
+      :maxDate="maxDate"
+      :minYearWithDate="minYearWithDate"
+      :maxYearWithDate="maxYearWithDate"
     />
   </div>
 </template>
@@ -11,9 +13,10 @@
 <script setup lang="ts">
 import MySlider from "./components/MySlider.vue";
 
-const startYear: number = 2014;
-const endYear: number = 2026;
-const startYearWithDate: number = 2011;
+const minDate: Date = new Date(2000, 1);
+const maxDate: Date = new Date(2030, 1);
+const minYearWithDate: Date = new Date(2012, 4);
+const maxYearWithDate: Date = new Date(2014, 1);
 </script>
 
 <style lang="scss">
@@ -21,5 +24,4 @@ const startYearWithDate: number = 2011;
   height: 100vh;
   background-color: rgb(232, 232, 232);
 }
-
 </style>
