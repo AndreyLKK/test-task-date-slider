@@ -15,11 +15,12 @@ import MySlider from "./components/MySlider.vue";
 
 const minDate: Date = new Date(2000, 1);
 const maxDate: Date = new Date(2030, 1);
-const minYearWithDate: Date = new Date(2012, 4);
-const maxYearWithDate: Date = new Date(2014, 1);
+const minYearWithDate: Date = new Date(2000, 4);
+const maxYearWithDate: Date = new Date(2002, 10);
 </script>
 
 <style lang="scss">
+
 .content {
   height: 100vh;
   background-color: rgb(232, 232, 232);

@@ -19,7 +19,9 @@
       </div>
       <div class="slider__inner">
         <div class="slider__control">
+          <div class="slider__bg-line"></div>
           <span :style="progressStyle" class="slider__progress"></span>
+
           <div
             :style="calcDistanceLeft"
             class="slider__tooltip slider__tooltip--left"
@@ -73,80 +75,55 @@
               class="slider__tooltip-triangle slider__tooltip-triangle--right"
             ></span>
           </div>
-          <div class="slider__circle-inside" ref="circleFrom"></div>
-          <input
-            class="slider__input"
-            v-model="fromValue"
-            id="fromSlider"
-            type="range"
-            min="0"
-            max="100"
-            :step="visibleMounth ? stepValue : stepValueYearAndMonth"
-            @input="updateCirclePositions"
-          />
-          <div class="slider__circle-inside" ref="circleTo"></div>
-          <input
-            class="slider__input"
-            v-model="toValue"
-            id="toSlider"
-            type="range"
-            min="0"
-            max="100"
-            :step="visibleMounth ? stepValue : stepValueYearAndMonth"
-            @input="updateCirclePositions"
-          />
+
+          <div
+            @mousedown="startDragging('left')"
+            ref="outerCircleFrom"
+            :style="{ left: `${fromValue}%` }"
+            class="slider__circle-outside slider__circle-outside--left"
+          ></div>
+          <div
+            @mousedown="startDragging('right')"
+            ref="outerCircleTo"
+            :style="{ left: `${toValue}%` }"
+            class="slider__circle-outside slider__circle-outside--right"
+          ></div>
         </div>
-        <ul class="slider__year-list" ref="containerWidth" v-if="visibleMounth">
+
+        <ul class="slider__list" ref="containerWidth" v-if="visibleMounth">
           <li
-            class="slider__year-item"
+            class="slider__item"
             v-for="(months, year) in dateYearObject"
             :key="year"
           >
-            <div class="slider__year">
-              <p class="slider__year-text">
-                {{ year }}
-              </p>
-              <template v-if="false">
-                <ul
-                  class="slider__month-list"
-                  v-for="(month, index) in months"
-                  :key="index"
-                >
-                  <li class="slider__month-item">
-                    <p class="slider__month-text">
-                      {{ month }}
-                    </p>
-                  </li>
-                </ul>
-              </template>
-            </div>
+            <p class="slider__year-text">
+              {{ year }}
+            </p>
           </li>
         </ul>
 
-        <ul class="slider__list" v-if="!visibleMounth">
+        <ul class="slider__list" ref="containerWidth" v-if="!visibleMounth">
           <li
             class="slider__item"
             v-for="(months, year) in dateYearAndMounth"
             :key="year"
           >
-            <div class="slider__year">
-              <p
-                class="slider__year-text"
-                :class="{ 'slider__year-color': !visibleMounth }"
-              >
-                {{ year }}
-              </p>
+            <p
+              class="slider__year-text"
+              :class="{ 'slider__year-color': !visibleMounth }"
+            >
+              {{ year }}
+            </p>
 
-              <ul
-                class="slider__month-list"
-                v-for="(month, index) in months"
-                :key="index"
-              >
-                <li class="slider__month-item">
-                  <p class="slider__month-text">{{ month }}</p>
-                </li>
-              </ul>
-            </div>
+            <ul
+              class="slider__month-list"
+              v-for="(month, index) in months"
+              :key="index"
+            >
+              <li class="slider__month-item">
+                <p class="slider__month-text">{{ month }}</p>
+              </li>
+            </ul>
           </li>
         </ul>
       </div>
@@ -162,105 +139,131 @@ import {
   defineProps,
   onMounted,
   onUnmounted,
-  nextTick
-} from 'vue';
+  nextTick,
+} from "vue";
 
 import {
+  month,
   createObjYear,
   createObjMonth,
   removingExtraYears,
   getFilteredMonths,
   calculateStepValue,
-  month
-} from '@/assets/utils/dateUtils';
+} from "@/assets/utils/dateUtils";
 
 interface DateObject {
-[year: number]: Month[];
+  [year: number]: Month[];
 }
 
 interface Month {
-[month: number]: string;
+  [month: number]: string;
 }
 
 interface Props {
-minDate: Date;
-maxDate: Date;
-minYearWithDate: Date;
-maxYearWithDate: Date;
+  minDate: Date;
+  maxDate: Date;
+  minYearWithDate: Date;
+  maxYearWithDate: Date;
 }
 
 const props = defineProps<Props>();
 
 const minDate = computed(() => props.minDate);
 const maxDate = computed(() => props.maxDate);
-
 const minYearWithDate = computed(() => props.minYearWithDate);
 const maxYearWithDate = computed(() => props.maxYearWithDate);
 
 const containerWidth = ref<HTMLElement | null>(null);
-const circleFrom = ref<HTMLElement | null>(null);
-const circleTo = ref<HTMLElement | null>(null);
+
+const outerCircleFrom = ref<HTMLElement | null>(null);
+const outerCircleTo = ref<HTMLElement | null>(null);
 
 const width = ref<number>(window.innerWidth);
 
-const dateObject = ref<DateObject>(createObjYear(
-  minDate.value.getFullYear(),
-  maxDate.value.getFullYear(),
-  month
-));
+const dateObject = ref<DateObject>(
+  createObjYear(minDate.value.getFullYear(), maxDate.value.getFullYear(), month)
+);
 
-const dateYearAndMounth = ref<DateObject>(createObjMonth(dateObject.value, minYearWithDate.value));
+const dateYearAndMounth = ref<DateObject>(
+  createObjMonth(dateObject.value, minYearWithDate.value)
+);
 
-const dateYearObject = ref<DateObject>(removingExtraYears(containerWidth.value, dateObject.value));
+const dateYearObject = ref<DateObject>(
+  removingExtraYears(containerWidth.value, dateObject.value)
+);
 const originalDateYearObject = ref<DateObject>({});
 
 const visibleMounth = ref<boolean>(true);
-let objRedrawFlag = false;
 
+let objRedrawFlag: boolean = false;
+let draggingSide: string | null = null;
 
-const onResize = () => {
-width.value = window.innerWidth;
+const onResize = (): void => {
+  width.value = window.innerWidth;
 };
 
 onMounted(() => {
-  originalDateYearObject.value = { ...dateYearObject.value };
-
   updateDateObject();
-  window.addEventListener('resize', onResize);
+  window.addEventListener("resize", onResize);
   removingExtraYears(containerWidth.value, dateObject.value);
-  updateCirclePositions();
 });
 
 onUnmounted(() => {
-  window.removeEventListener('resize', onResize);
+  window.removeEventListener("resize", onResize);
 });
 
 watch(
   () => maxDate.value,
   () => {
     nextTick(() => {
-      dateYearObject.value = removingExtraYears(containerWidth.value, dateObject.value);
+      dateYearObject.value = removingExtraYears(
+        containerWidth.value,
+        dateObject.value
+      );
     });
   },
   { immediate: true }
 );
 
-const updateCirclePositions = () => {
-  if (circleFrom.value) {
-    circleFrom.value.style.left = `calc(${fromValue.value}%`;
-  }
-  if (circleTo.value) {
-    circleTo.value.style.left = `calc(${toValue.value}%`;
-  }
+const startDragging = (side: string): void => {
+  draggingSide = side;
+  document.addEventListener("mousemove", onMouseMove);
+  document.addEventListener("mouseup", stopDragging);
 };
 
-const interestСalc = () => (minYearWithDate.value.getMonth() / 24) * 100;
-const interestСalcRight = () => ((maxYearWithDate.value.getMonth() + 12) / 24) * 100;
+function onMouseMove(event: MouseEvent): void {
+  if (outerCircleFrom.value && containerWidth.value) {
+    const containerRect = containerWidth.value.getBoundingClientRect();
 
-let fromValue = ref(interestСalc());
-let toValue = ref(interestСalcRight());
+    if (draggingSide === "left") {
+      const newLeft = event.clientX - containerRect.left;
+      const percentage = (newLeft / containerRect.width) * 100;
+      fromValue.value = Math.min(Math.max(percentage, 0), toValue.value);
+    }
 
-const handlerToggle = () => {
+    if (draggingSide === "right") {
+      const newRight =
+        containerRect.width - (containerRect.right - event.clientX);
+      const percentage = (newRight / containerRect.width) * 100;
+      toValue.value = Math.max(Math.min(percentage, 100), fromValue.value);
+    }
+  }
+}
+
+const stopDragging = (): void => {
+  document.removeEventListener("mousemove", onMouseMove);
+  document.removeEventListener("mouseup", stopDragging);
+};
+
+const interestСalcFrom = (): number =>
+  (minYearWithDate.value.getMonth() / 24) * 100;
+const interestСalcTo = (): number =>
+  ((maxYearWithDate.value.getMonth() + 12) / 24) * 100;
+
+const fromValue = ref(interestСalcFrom());
+const toValue = ref(interestСalcTo());
+
+const handlerToggle = (): void => {
   visibleMounth.value = !visibleMounth.value;
 };
 
@@ -270,13 +273,17 @@ const updateDateObjects = (monthsFilter: string[]): void => {
     maxDate.value.getFullYear(),
     monthsFilter
   );
-  dateYearAndMounth.value = createObjMonth(dateObject.value, minYearWithDate.value);
+  dateYearAndMounth.value = createObjMonth(
+    dateObject.value,
+    minYearWithDate.value
+  );
 };
 
 const adjustDateYearObject = (): DateObject | void => {
   if (!containerWidth.value) return;
 
-  const distanceToRightEdge = window.innerWidth - containerWidth.value.getBoundingClientRect().right;
+  const distanceToRightEdge =
+    window.innerWidth - containerWidth.value.getBoundingClientRect().right;
 
   if (distanceToRightEdge < 10) {
     const keys = Object.keys(dateYearObject.value);
@@ -305,12 +312,14 @@ const updateDateObject = (): void => {
 
 watch(width, updateDateObject);
 
-window.addEventListener('resize', onResize);
+window.addEventListener("resize", onResize);
 
 const stepValue = computed(() => calculateStepValue(dateObject.value));
-const stepValueYearAndMonth = computed(() => calculateStepValue(dateYearAndMounth.value));
+const stepValueYearAndMonth = computed(() =>
+  calculateStepValue(dateYearAndMounth.value)
+);
 
-const monthTooltip = (value: number, step: string): string  => {
+const monthTooltip = (value: number, step: string): string => {
   const stepIndex = Math.round(value / Number(step));
   const monthIndex = stepIndex % 12;
   return month[monthIndex];
@@ -327,26 +336,20 @@ const yearTooltip = (value: number, step: string, obj: DateObject): string => {
 
 const progressStyle = computed(() => ({
   left: `${fromValue.value}%`,
-  width: `${toValue.value - fromValue.value}%`
+  width: `${toValue.value - fromValue.value}%`,
 }));
 
 const calcDistanceLeft = computed(() => ({
-  left: `${fromValue.value}%`
+  left: `${fromValue.value}%`,
 }));
 
 const calcDistanceRight = computed(() => ({
-  right: `${100 - toValue.value}%`
+  right: `${100 - toValue.value}%`,
 }));
 
 const activeSlider = (isActive: boolean) => ({
-  opacity: isActive ? '1' : '0.6',
-  borderBottom: isActive ? 'none' : '1px solid rgba(120, 169, 205, 0.5)'
-});
-
-watch([fromValue, toValue], ([newFromValue, newToValue]) => {
-  if (+newFromValue > +newToValue) {
-    [fromValue.value, toValue.value] = [newToValue, newFromValue];
-  }
+  opacity: isActive ? "1" : "0.6",
+  borderBottom: isActive ? "none" : "1px solid rgba(120, 169, 205, 0.5)",
 });
 </script>
 
@@ -355,18 +358,6 @@ watch([fromValue, toValue], ([newFromValue, newToValue]) => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 15px;
-}
-
-.slider__circle-inside {
-  display: flex;
-  align-items: center;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background-color: #edf1f1;
-  position: absolute;
-  z-index: 4;
-  pointer-events: none;
 }
 
 .slider {
@@ -418,26 +409,64 @@ watch([fromValue, toValue], ([newFromValue, newToValue]) => {
     z-index: 1;
   }
 
-  &__year-list,
+  &__bg-line {
+    appearance: none;
+    height: 10px;
+    width: 100%;
+    position: absolute;
+    background-color: #edf1f1;
+    pointer-events: none;
+    left: 0;
+    right: 0;
+  }
+
+  &__circle-outside {
+    appearance: none;
+    position: relative;
+    pointer-events: all;
+    width: 20px;
+    height: 20px;
+    background-color: #5cadea;
+    border-radius: 50%;
+    z-index: 2;
+    cursor: pointer;
+
+    &::after {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #edf1f1;
+      position: absolute;
+      z-index: 4;
+      transform: translateX(50%) translateY(50%);
+    }
+  }
+
+  &__circle-outside--right {
+    transform: translateX(-175%);
+  }
+
+  &__circle-outside--left {
+    transform: translateX(-25%);
+  }
+
   &__list {
     display: flex;
     justify-content: space-between;
-    width: 103%;
+    width: 104%;
     margin-left: -16px;
   }
 
-  &__year-item {
+  &__item {
     margin-right: 5px;
+    display: flex;
+    justify-content: space-between;
   }
 
   &__item:not(:last-child) {
     width: 100%;
     margin-right: 14px;
-  }
-
-  &__year {
-    display: flex;
-    justify-content: space-between;
   }
 
   &__year-text {
@@ -451,38 +480,6 @@ watch([fromValue, toValue], ([newFromValue, newToValue]) => {
   &__month-text {
     color: #adadad;
   }
-
-  &__input[type="range"] {
-    appearance: none;
-    height: 10px;
-    width: 100%;
-    position: absolute;
-    background-color: #edf1f1;
-    pointer-events: none;
-    left: 0;
-    right: 0;
-  }
-
-  &__input[type="range"]::-webkit-slider-thumb {
-    appearance: none;
-    position: relative;
-    pointer-events: all;
-    width: 20px;
-    height: 20px;
-    background-color: #5cadea;
-    border-radius: 50%;
-    z-index: 2;
-    cursor: pointer;
-  }
-}
-
-#fromSlider::-webkit-slider-thumb {
-  transform: translateX(-20%);
-}
-
-#fromSlider {
-  height: 0;
-  z-index: 2;
 }
 
 .slider__tooltip {
@@ -531,54 +528,6 @@ watch([fromValue, toValue], ([newFromValue, newToValue]) => {
       transform: translateX(50%);
       bottom: 38px;
     }
-  }
-}
-
-@media (max-width: 1118px) {
-  .slider__list {
-    width: 106%;
-  }
-  .slider .slider__item {
-    margin-right: 26px;
-  }
-}
-
-@media (max-width: 830px) {
-  .slider .slider__item {
-    margin-right: 38px;
-  }
-
-  .slider__list {
-    width: 108%;
-  }
-
-  .slider .slider__item {
-    margin-right: 29px;
-  }
-}
-
-@media (max-width: 630px) {
-  .slider__list {
-    width: 112%;
-    margin-left: -15px;
-  }
-  .slider__month-text,
-  .slider__year-text,
-  .slider__text {
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 560px) {
-  .slider .slider__item {
-    margin-right: 14px;
-  }
-}
-
-@media (max-width: 470px) {
-  .slider__list {
-    width: 116%;
-    margin-left: -15px;
   }
 }
 </style>
