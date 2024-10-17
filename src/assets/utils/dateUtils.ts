@@ -32,7 +32,6 @@ export function createObjYear(
   for (let year = minDate; year <= maxDate; year++) {
     result[year] = [...trimmedMonth];
   }
-
   return result;
 }
 
@@ -50,18 +49,59 @@ export function createObjMonth(
   };
 }
 
+// export function removingExtraYears(
+//   containerWidth: HTMLElement | null,
+//   dateObject: DateObject
+// ): DateObject {
+//   if (!containerWidth) return dateObject;
+
+//   const containerWidthPx = containerWidth.offsetWidth;
+//   const scrollWidthPx = containerWidth.scrollWidth;
+
+//   if (containerWidthPx < scrollWidthPx) {
+//     const keys = Object.keys(dateObject).map(Number);
+//     const visibleKeys = keys.filter((_, i) => i % 2 === 0);
+
+//     return visibleKeys.reduce((obj, key) => {
+//       obj[key] = dateObject[key];
+//       return obj;
+//     }, {} as DateObject);
+//   } else {
+//     return dateObject;
+//   }
+// }
+
 export function removingExtraYears(
   containerWidth: HTMLElement | null,
   dateObject: DateObject
 ): DateObject {
   if (!containerWidth) return dateObject;
-
-  const containerWidthPx = containerWidth.offsetWidth;
-  const scrollWidthPx = containerWidth.scrollWidth;
-
-  if (containerWidthPx < scrollWidthPx) {
+  console.log(Object.keys(dateObject).length);
+  if (
+    Object.keys(dateObject).length > 15 &&
+    Object.keys(dateObject).length < 45
+  ) {
     const keys = Object.keys(dateObject).map(Number);
     const visibleKeys = keys.filter((_, i) => i % 2 === 0);
+
+    return visibleKeys.reduce((obj, key) => {
+      obj[key] = dateObject[key];
+      return obj;
+    }, {} as DateObject);
+  } else if (
+    Object.keys(dateObject).length > 45 &&
+    Object.keys(dateObject).length < 60
+  ) {
+    const keys = Object.keys(dateObject).map(Number);
+    const visibleKeys = keys.filter((_, i) => i % 3 === 0);
+
+    return visibleKeys.reduce((obj, key) => {
+      obj[key] = dateObject[key];
+      return obj;
+    }, {} as DateObject);
+  } else if (Object.keys(dateObject).length > 60) {
+    const keys = Object.keys(dateObject).map(Number);
+    const visibleKeys = keys.filter((_, i) => i % 4 === 0);
 
     return visibleKeys.reduce((obj, key) => {
       obj[key] = dateObject[key];

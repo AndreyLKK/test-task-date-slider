@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+ 
     <div class="slider">
       <div class="slider__text-date">
         <button
@@ -126,7 +126,7 @@
             </ul>
           </li>
         </ul>
-      </div>
+   
     </div>
   </div>
 </template>
@@ -213,6 +213,22 @@ onUnmounted(() => {
 });
 
 watch(
+  () => minDate.value,
+  () => {
+    dateObject.value = createObjYear(
+      minDate.value.getFullYear(),
+      maxDate.value.getFullYear(),
+      month
+    );
+
+    dateYearObject.value = removingExtraYears(
+      containerWidth.value,
+      dateObject.value
+    );
+  }
+);
+
+watch(
   () => maxDate.value,
   () => {
     nextTick(() => {
@@ -223,6 +239,26 @@ watch(
     });
   },
   { immediate: true }
+);
+
+watch(
+  () => minYearWithDate.value,
+  () => {
+
+    
+    dateYearAndMounth.value = createObjMonth(
+      dateObject.value,
+      minYearWithDate.value
+    );
+    fromValue.value = interestСalcFrom()
+  }
+);
+
+watch(
+  () => maxYearWithDate.value,
+  () => {
+    toValue.value = interestСalcTo()
+  }
 );
 
 const startDragging = (side: string): void => {
@@ -354,16 +390,11 @@ const activeSlider = (isActive: boolean) => ({
 </script>
 
 <style scoped lang="scss">
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 15px;
-}
 
 .slider {
   display: flex;
   width: 90%;
-  height: 100vh;
+
   grid-gap: 20px;
   align-items: center;
 
