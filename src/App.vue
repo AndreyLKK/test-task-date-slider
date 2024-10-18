@@ -188,7 +188,7 @@ watch(
 
 const createDate = (year: number | null, month: number | null) => {
   return year !== null && month !== null
-    ? new Date(year, month - 1)
+    ? new Date(year, month)
     : new Date(0);
 };
 
@@ -202,12 +202,12 @@ const handlerAddDate = () => {
 
   minYearWithDate.value = createDate(
     yearMonthMin.value ? yearMonthMin.value : yearMin.value,
-    Number(monthMin.value)
+    Number(monthMin.value - 1)
   );
 
   maxYearWithDate.value = createDate(
     yearMonthMax.value + 2,
-    Number(monthMax.value)
+    Number(monthMax.value - 1)
   );
 };
 

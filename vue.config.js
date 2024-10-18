@@ -3,6 +3,7 @@ const path = require("path");
 
 module.exports = defineConfig({
   transpileDependencies: true,
+  publicPath: process.env.NODE_ENV === "production" ? "/test-task-date-slider/" : "/",
   configureWebpack: {
     resolve: {
       alias: {
